@@ -1,4 +1,5 @@
 import Link from './Link'
+import { unslashEnd, stripPageParam } from '../utils/helpers'
 
 // @vue/component
 export default {
@@ -13,6 +14,9 @@ export default {
     nextLabel: { type: String, default: '›' },
     lastLabel: { type: String, default: '»' },
     linkClass: { type: String, default: '' },
+    range: { type: Number, default: 5 },
+    activeLinkClass: { type: String, default: undefined },
+    exactActiveLinkClass: { type: String, default: undefined },
 
     // accessibility
     ariaLabel: { type: String, default: 'Pagination Navigation' },
@@ -24,17 +28,31 @@ export default {
     ariaLastLabel: { type: String, default: 'Go to last page. Page %n' }
   },
 
-  render: (h, { props, data }) => {
+  render: (h, { props, data, parent }) => {
     const { info, showLinks, showNavigation, ariaLabel } = props
-    const { current, total, pages, start, end } = resolveRange(info)
+    const { current, total, pages, start, end } = resolveRange(info, props.range)
+    const currentPath = stripPageParam(parent.$route)
 
     const renderLink = (page, text = page, ariaLabel = text) => {
       if (page === current) ariaLabel = props.ariaCurrentLabel
 
+      const linkProps = {
+        to: createPagePath(currentPath, page),
+        exact: true
+      }
+
+      if (props.activeLinkClass) {
+        linkProps.activeClass = props.activeLinkClass
+      }
+
+      if (props.exactActiveLinkClass) {
+        linkProps.exactActiveClass = props.exactActiveLinkClass
+      }
+
       return h(Link, {
-        staticClass: props.linkClass,
-        props: { page },
+        class: props.linkClass,
         attrs: {
+          ...linkProps,
           'aria-label': ariaLabel.replace('%n', page),
           'aria-current': current === page
         }
@@ -68,24 +86,28 @@ export default {
   }
 }
 
+function createPagePath (path, page) {
+  const suffix = /\/$/.test(path) ? '/' : ''
+  return page > 1 ? unslashEnd(path) + `/${page}${suffix}` : path
+}
+
 function resolveRange ({
   currentPage: current = 1,
   totalPages: total = 1
-}) {
-  const length = 10
-  const offset = Math.ceil(length / 2)
+}, range) {
+  const offset = Math.ceil(range / 2)
 
-  let start = current - offset
-  let end = current + offset
+  let start = Math.floor(current - offset)
+  let end = Math.floor(current + offset)
 
-  if (total <= length) {
+  if (total <= range) {
     start = 0
     end = total
   } else if (current <= offset) {
     start = 0
-    end = length
+    end = range
   } else if ((current + offset) >= total) {
-    start = total - length
+    start = total - range
     end = total
   }
 

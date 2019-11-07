@@ -1,17 +1,20 @@
 const path = require('path')
+const hash = require('hash-sum')
+const { pick } = require('lodash')
 const Config = require('webpack-chain')
 const { forwardSlash } = require('../utils')
 const { VueLoaderPlugin } = require('vue-loader')
 const createHTMLRenderer = require('../server/createHTMLRenderer')
+const GridsomeResolverPlugin = require('./plugins/GridsomeResolverPlugin')
 const CSSExtractPlugin = require('mini-css-extract-plugin')
 
 const resolve = (p, c) => path.resolve(c || __dirname, p)
 
 module.exports = (app, { isProd, isServer }) => {
   const { config: projectConfig } = app
+  const { publicPath } = projectConfig
   const { cacheDirectory, cacheIdentifier } = createCacheOptions()
-  const assetsDir = path.relative(projectConfig.outDir, projectConfig.assetsDir)
-  const pathPrefix = forwardSlash(path.join(projectConfig.pathPrefix, '/'))
+  const assetsDir = path.relative(projectConfig.outputDir, projectConfig.assetsDir)
   const config = new Config()
 
   const useHash = isProd && !process.env.GRIDSOME_TEST
@@ -22,8 +25,8 @@ module.exports = (app, { isProd, isServer }) => {
   config.mode(isProd ? 'production' : 'development')
 
   config.output
-    .publicPath(pathPrefix)
-    .path(projectConfig.outDir)
+    .publicPath(publicPath)
+    .path(projectConfig.outputDir)
     .chunkFilename(`${assetsDir}/js/${filename}`)
     .filename(`${assetsDir}/js/${filename}`)
 
@@ -42,6 +45,14 @@ module.exports = (app, { isProd, isServer }) => {
     .add(resolve('../../../packages'))
     .add('node_modules')
 
+  config.resolve
+    .plugin('gridsome-fallback-resolver-plugin')
+      .use(GridsomeResolverPlugin, [{
+        fallbackDir: path.join(projectConfig.appPath, 'fallbacks'),
+        optionalDir: path.join(app.context, 'src'),
+        resolve: ['main', 'App.vue']
+      }])
+
   config.resolveLoader
     .set('symlinks', true)
     .modules
@@ -50,7 +61,7 @@ module.exports = (app, { isProd, isServer }) => {
     .add(resolve('../../../packages'))
     .add('node_modules')
 
-  config.module.noParse(/^(vue|vue-router)$/)
+  config.module.noParse(/^(vue|vue-router|vue-meta)$/)
 
   if (app.config.runtimeCompiler) {
     config.resolve.alias.set('vue$', 'vue/dist/vue.esm.js')
@@ -77,6 +88,7 @@ module.exports = (app, { isProd, isServer }) => {
       compilerOptions: {
         preserveWhitespace: false,
         modules: [
+          require('./modules/html')(),
           require('./modules/assets')()
         ]
       },
@@ -87,14 +99,18 @@ module.exports = (app, { isProd, isServer }) => {
   // js
 
   config.module.rule('js')
-    .test(/\.jsx?$/)
+    .test(/\.js$/)
     .exclude
     .add(filepath => {
-      if (/\.vue\.jsx?$/.test(filepath)) {
+      if (/\.vue\.js$/.test(filepath)) {
         return false
       }
 
       if (/gridsome\.client\.js$/.test(filepath)) {
+        return false
+      }
+
+      if (filepath.startsWith(projectConfig.appPath)) {
         return false
       }
 
@@ -103,10 +119,6 @@ module.exports = (app, { isProd, isServer }) => {
           ? filepath.includes(path.normalize(dep))
           : filepath.match(dep)
       })) {
-        return false
-      }
-
-      if (filepath.startsWith(projectConfig.appPath)) {
         return false
       }
 
@@ -124,25 +136,28 @@ module.exports = (app, { isProd, isServer }) => {
     .loader('babel-loader')
     .options({
       presets: [
-        require.resolve('./babel-preset')
+        [require.resolve('@vue/babel-preset-app'), {
+          entryFiles: [
+            resolve('../../app/entry.server.js'),
+            resolve('../../app/entry.client.js')
+          ]
+        }]
       ]
     })
 
   // css
 
-  createCSSRule(config, 'css', /\.css$/)
-  createCSSRule(config, 'postcss', /\.p(ost)?css$/)
-  createCSSRule(config, 'scss', /\.scss$/, 'sass-loader', projectConfig.scss)
-  createCSSRule(config, 'sass', /\.sass$/, 'sass-loader', Object.assign({ indentedSyntax: true }, projectConfig.sass))
-  createCSSRule(config, 'less', /\.less$/, 'less-loader', projectConfig.less)
-  createCSSRule(config, 'stylus', /\.styl(us)?$/, 'stylus-loader', Object.assign({
-    preferPathResolver: 'webpack'
-  }, projectConfig.stylus))
+  createCSSRule(config, 'css', /\.css$/, null, projectConfig.css.loaderOptions.css)
+  createCSSRule(config, 'postcss', /\.p(ost)?css$/, null, projectConfig.css.loaderOptions.postcss)
+  createCSSRule(config, 'scss', /\.scss$/, 'sass-loader', projectConfig.css.loaderOptions.scss)
+  createCSSRule(config, 'sass', /\.sass$/, 'sass-loader', projectConfig.css.loaderOptions.sass)
+  createCSSRule(config, 'less', /\.less$/, 'less-loader', projectConfig.css.loaderOptions.less)
+  createCSSRule(config, 'stylus', /\.styl(us)?$/, 'stylus-loader', projectConfig.css.loaderOptions.stylus)
 
   // assets
 
   config.module.rule('images')
-    .test(/\.(png|jpe?g|gif)(\?.*)?$/)
+    .test(/\.(png|jpe?g|gif|webp)(\?.*)?$/)
     .use('url-loader')
     .loader('url-loader')
     .options({
@@ -186,12 +201,6 @@ module.exports = (app, { isProd, isServer }) => {
     .use('yaml-loader')
     .loader('yaml-loader')
 
-  // graphql
-  // TODO: remove graphql loader before v1.0
-  createGraphQLRule('graphql', './loaders/page-query')
-  createGraphQLRule('page-query', './loaders/page-query')
-  createGraphQLRule('static-query', './loaders/static-query')
-
   // plugins
 
   if (process.stdout.isTTY && !process.env.GRIDSOME_TEST) {
@@ -204,9 +213,6 @@ module.exports = (app, { isProd, isServer }) => {
 
   config.plugin('case-sensitive-paths')
     .use(require('case-sensitive-paths-webpack-plugin'))
-
-  // config.plugin('friendly-errors')
-  //   .use(require('friendly-errors-webpack-plugin'))
 
   if (!isProd) {
     config.plugin('html')
@@ -221,81 +227,43 @@ module.exports = (app, { isProd, isServer }) => {
   }
 
   config.plugin('injections')
-    .use(require('webpack/lib/DefinePlugin'), [{
-      'process.env.PUBLIC_PATH': JSON.stringify(pathPrefix),
-      'GRIDSOME_CACHE_DIR': JSON.stringify(projectConfig.cacheDir),
-      'GRIDSOME_DATA_DIR': JSON.stringify(`${projectConfig.cacheDir}/data`),
-      'GRIDSOME_MODE': JSON.stringify(process.env.GRIDSOME_MODE || ''),
-      'process.isClient': !isServer,
-      'process.isServer': isServer
-    }])
+    .use(require('webpack/lib/DefinePlugin'), [createEnv()])
 
   if (isProd && !isServer) {
     config.plugin('extract-css')
       .use(CSSExtractPlugin, [{
         filename: `${assetsDir}/css/styles${useHash ? '.[contenthash:8]' : ''}.css`
       }])
-
-    config.optimization.splitChunks({
-      cacheGroups: {
-        data: {
-          test: m => m.resource && m.request.startsWith(`${projectConfig.cacheDir}/data`),
-          name: false,
-          chunks: 'all',
-          maxSize: 60000,
-          minSize: 5000
-        }
-      }
-    })
   }
 
   if (process.env.GRIDSOME_TEST) {
+    config.output.pathinfo(true)
     config.optimization.minimize(false)
   }
 
   // helpes
 
   function createCacheOptions () {
+    const values = app.compiler.hooks.cacheIdentifier.call({
+      'gridsome': require('../../package.json').version,
+      'cache-loader': require('cache-loader/package.json').version,
+      'vue-loader': require('vue-loader/package.json').version,
+      context: app.context,
+      isProd,
+      isServer,
+      config: (
+        (projectConfig.chainWebpack || '').toString()
+      )
+    })
+
     return {
-      cacheDirectory: resolve('../../node_modules/.cache/gridsome'),
-      cacheIdentifier: JSON.stringify({
-        'gridsome': require('../../package.json').version,
-        'cache-loader': require('cache-loader').version,
-        'vue-loader': require('vue-loader').version,
-        isProd,
-        isServer,
-        config: (
-          (projectConfig.chainWebpack || '').toString()
-        )
-      })
+      cacheDirectory: app.resolve('node_modules/.cache/gridsome'),
+      cacheIdentifier: hash(values)
     }
   }
 
-  function createGraphQLRule (type, loader) {
-    const re = new RegExp(`blockType=(${type})`)
-
-    config.module.rule(type)
-      .resourceQuery(re)
-      .use('cache-loader')
-      .loader('cache-loader')
-      .options({
-        cacheDirectory,
-        cacheIdentifier
-      })
-      .end()
-      .use('babel-loader')
-      .loader('babel-loader')
-      .options({
-        presets: [
-          require.resolve('./babel-preset')
-        ]
-      })
-      .end()
-      .use(`${type}-loader`)
-      .loader(require.resolve(loader))
-  }
-
   function createCSSRule (config, lang, test, loader = null, options = {}) {
+    const { css = {}, postcss = {}} = projectConfig.css.loaderOptions
     const baseRule = config.module.rule(lang).test(test)
     const modulesRule = baseRule.oneOf('modules').resourceQuery(/module/)
     const normalRule = baseRule.oneOf('normal')
@@ -313,24 +281,55 @@ module.exports = (app, { isProd, isServer }) => {
       }
 
       rule.use('css-loader')
-        .loader(isServer ? 'css-loader/locals' : 'css-loader')
-        .options({
+        .loader('css-loader')
+        .options(Object.assign({
           modules,
+          exportOnlyLocals: isServer,
           localIdentName: `[local]_[hash:base64:8]`,
           importLoaders: 1,
           sourceMap: !isProd
-        })
+        }, css))
 
       rule.use('postcss-loader')
         .loader('postcss-loader')
         .options(Object.assign({
-          plugins: [require('autoprefixer')],
           sourceMap: !isProd
-        }, options.postcss))
+        }, postcss, {
+          plugins: (postcss.plugins || []).concat(require('autoprefixer'))
+        }))
 
       if (loader) {
         rule.use(loader).loader(loader).options(options)
       }
+    }
+  }
+
+  function createEnv () {
+    const assetsUrl = forwardSlash(path.join(publicPath, assetsDir, '/'))
+    const dataUrl = forwardSlash(path.join(assetsUrl, 'data', '/'))
+
+    const baseEnv = {
+      'process.env.PUBLIC_PATH': JSON.stringify(publicPath),
+      'process.env.ASSETS_URL': JSON.stringify(assetsUrl),
+      'process.env.DATA_URL': JSON.stringify(dataUrl),
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || ''),
+      'process.isClient': !isServer,
+      'process.isServer': isServer,
+      'process.isProduction': process.env.NODE_ENV === 'production',
+      'process.isStatic': process.env.GRIDSOME_MODE === 'static'
+    }
+
+    // merge variables start with GRIDSOME_ENV to config.env
+    const gridsomeEnv = pick(process.env, Object.keys(process.env).filter(key => key.startsWith('GRIDSOME_')))
+    const mergeEnv = Object.entries(gridsomeEnv)
+      .reduce((acc, [key, value]) => {
+        acc[`process.env.${key}`] = ['boolean', 'number'].includes(typeof value) ? value : JSON.stringify(value)
+        return acc
+      }, {})
+
+    return {
+      ...baseEnv,
+      ...mergeEnv
     }
   }
 

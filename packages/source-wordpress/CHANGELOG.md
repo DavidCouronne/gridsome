@@ -3,6 +3,104 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.5.0...@gridsome/source-wordpress@0.5.1) (2019-11-06)
+
+**Note:** Version bump only for package @gridsome/source-wordpress
+
+
+
+
+
+# [0.5.0](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.4.3...@gridsome/source-wordpress@0.5.0) (2019-10-25)
+
+
+### Features
+
+* **wordpress:** custom REST route support ([#706](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/issues/706)) ([23bd974](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/23bd974))
+
+
+
+
+
+## [0.4.3](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.4.2...@gridsome/source-wordpress@0.4.3) (2019-10-15)
+
+
+### Bug Fixes
+
+* **wordpress:** add references as array fields ([#745](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/issues/745)) ([6058ff1](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/6058ff1))
+
+
+
+
+
+## [0.4.2](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.4.1...@gridsome/source-wordpress@0.4.2) (2019-10-01)
+
+
+### Bug Fixes
+
+* **wordpress:** add meta to taxonomy terms ([#672](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/issues/672)) ([5b359ad](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/5b359ad))
+* **wordpress:** remove starting slash from rest_base ([#712](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/issues/712)) ([bb0f6d5](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/bb0f6d5))
+
+
+
+
+
+## [0.4.1](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.4.0...@gridsome/source-wordpress@0.4.1) (2019-09-17)
+
+
+### Bug Fixes
+
+* **wordpress:** don’t add default routes ([6e7134f](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/6e7134f))
+
+
+
+
+
+# [0.4.0](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.3.0...@gridsome/source-wordpress@0.4.0) (2019-09-11)
+
+
+### Features
+
+* **wordpress:** basic gridsome v0.7 support ([8433c9a](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/8433c9a))
+
+
+
+
+
+# [0.3.0](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.2.2...@gridsome/source-wordpress@0.3.0) (2019-05-10)
+
+
+### Features
+
+* **wordpress:** camelcase fields and use latest apis ([0c431cf](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/0c431cf))
+
+
+
+
+
+## [0.2.2](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.2.1...@gridsome/source-wordpress@0.2.2) (2019-04-18)
+
+
+### Bug Fixes
+
+* **wordpress:** show error message when api fails ([d47424f](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/d47424f))
+
+
+
+
+
+<a name="0.2.1"></a>
+## [0.2.1](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.2.0...@gridsome/source-wordpress@0.2.1) (2019-01-26)
+
+
+### Bug Fixes
+
+* **wordpress:** don’t throw error for 401 requests ([#146](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/issues/146)) ([ef84ca5](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/commit/ef84ca5))
+
+
+
+
+
 <a name="0.2.0"></a>
 # [0.2.0](https://github.com/gridsome/gridsome/tree/master/packages/source-wordpress/compare/@gridsome/source-wordpress@0.1.1...@gridsome/source-wordpress@0.2.0) (2019-01-21)
 
